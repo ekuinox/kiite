@@ -4,9 +4,10 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^3.16.0",
     "@types/base-64": "^1.0.0",
-    "@types/node": "^18.8.3",
+    "@types/crypto-js": "^4.1.1",
     "typescript": "^4.8.4",
-    "wrangler": "2.1.10"
+    "wrangler": "2.1.10",
+    "zod": "^3.19.1"
   },
   "private": true,
   "scripts": {
@@ -14,7 +15,6 @@
     "deploy": "wrangler publish"
   },
   "dependencies": {
-    "base-64": "^1.0.0",
     "hono": "^2.2.5"
   }
 }

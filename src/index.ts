@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { encode } from 'base-64';
+import { SpotifyClient } from './spotify';
 
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
@@ -25,51 +25,50 @@ export interface Env {
     CALLBACK_URL: string;
 }
 
+const SPOTIFY_SCOPES = [
+    'streaming',
+    'user-read-email',
+    'user-read-private',
+    'playlist-modify-public',
+    'playlist-modify-private'
+];
+
 const app = new Hono<{ Bindings: Env }>();
 
 app.get('/', (c) => {
-    return c.text('hello world');
+    return c.html(`
+        <a href='/login'>login</a>
+    `);
 });
 
-app.get('/login', (c) => {
-    const { SPOTIFY_CLIENT_ID: clientId, CALLBACK_URL: callbackUrl } = c.env;
+app.get('/login', async (c) => {
+    const { SPOTIFY_CLIENT_ID: clientId, CALLBACK_URL: redirectUri } = c.env;
 
-    const scopes = ['streaming', 'user-read-email', 'user-read-private', 'playlist-modify-public', 'playlist-modify-private'];
-    const params = new URLSearchParams();
-    const state = 'state';
-    params.append('client_id', clientId);
-    params.append('response_type', 'code');
-    params.append('redirect_uri', callbackUrl);
-    params.append('scope', scopes.join(' '));
-    params.append('state', state);
+    const [authorizeUri, state] = SpotifyClient.generateAuthorizeUris(
+        SPOTIFY_SCOPES,
+        { clientId, redirectUri }
+    );
     c.cookie('state', state);
-    const redirectTo = `https://accounts.spotify.com/authorize?${params.toString()}`;
-    return c.redirect(redirectTo);
+
+    return c.redirect(authorizeUri);
 });
 app.get('/callback', async (c) => {
     const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret, CALLBACK_URL: callbackUrl } = c.env;
     const { state: cookieState } = c.req.cookie();
-    console.log({ cookieState });
     const { code, state } = c.req.query();
-    const params = new URLSearchParams();
 
-    params.append('grant_type', 'authorization_code');
-    params.append('code', code);
-    params.append('redirect_uri', callbackUrl);
+    if (state !== cookieState) {
+        return c.redirect('/');
+    }
 
-    const response = await fetch(`https://accounts.spotify.com/api/token?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${encode(`${clientId}:${clientSecret}`)}`
-        },
-    });
-    const json = await response.json();
-    console.log((json as any).access_token);
-    console.log(json);
-
-
-    return c.redirect('/');
+    try {
+        const client = await SpotifyClient.fromCode(code, { clientId, clientSecret, redirectUri: callbackUrl });
+        const profile = await client.getCurrentUsersProfile();
+        return c.text(`hello ${profile.displayName}`);
+    } catch (e: unknown) {
+        console.error(e);
+        return c.text('error');
+    }
 });
 
 export default app;
