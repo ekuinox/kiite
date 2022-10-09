@@ -54,8 +54,6 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
             spotifyScopes,
             { clientId, redirectUri }
         );
-        c.cookie('state', session, { sameSite: 'Strict' });
-
         return c.redirect(authorizeUri);
     });
 
