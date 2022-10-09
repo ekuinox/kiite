@@ -48,14 +48,11 @@ export class SpotifyClient {
 
     getRefreshToken = (): string => this.#refreshToken;
 
-    static generateAuthorizeUris = (
+    static generateAuthorizeUri = (
+        state: string,
         scopes: ReadonlyArray<string>,
         { clientId, redirectUri }: Omit<SpotifyOAuth2AppCredentials, 'clientSecret'>
-    ): [authorizeUri: string, state: string] => {
-        const buffer = new Uint8Array(64);
-        const randomBytes = crypto.getRandomValues(buffer);
-        const state = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('')
-
+    ): string => {
         const params = new URLSearchParams();
         params.append('client_id', clientId);
         params.append('response_type', 'code');
@@ -64,7 +61,7 @@ export class SpotifyClient {
         params.append('state', state);
         const authorizeUri = `https://accounts.spotify.com/authorize?${params.toString()}`;
 
-        return [authorizeUri, state];
+        return authorizeUri;
     }
 
     static fromCode = async (
@@ -92,24 +89,51 @@ export class SpotifyClient {
         'Authorization': `Bearer ${this.#accessToken}`,
     });
 
-    #get = async (path: string, params: Record<string, string> = {}) => {
+    #request = async (method: string, path: string, params: Record<string, string> = {}) => {
         const query = new URLSearchParams();
         for (const [key, value] of Object.entries(params)) {
             query.set(key, value);
         }
         return fetch(`https://api.spotify.com/v1${path}?${query.toString()}`, {
             headers: this.#headers(),
-            method: 'GET',
-        }).then((r) => r.json());
+            method,
+        });
+    };
+
+    static #asJson = <T extends z.ZodTypeAny>(typeObject: T) => async (r: Response) => {
+        const response = await r.json();
+        return typeObject.parseAsync(response);
+    };
+
+    #get = async (path: string, params: Record<string, string> = {}) => {
+        return this.#request('GET', path, params);
+    };
+
+    #post = async (path: string, params: Record<string, string> = {}) => {
+        return this.#request('POST', path, params);
     };
 
     getCurrentUsersProfile = async (): Promise<z.infer<typeof getCurrentUsersProfileResponseType>> => {
-        const response = await this.#get('/me');
-        return getCurrentUsersProfileResponseType.parseAsync(response);
+        return this.#get('/me')
+            .then(SpotifyClient.#asJson(getCurrentUsersProfileResponseType));
     };
 
     getCurrentlyPlayingTrack = async (): Promise<z.infer<typeof getCurrentlyPlayingTrackResponseType>> => {
-        const response = await this.#get('/me/player/currently-playing');
-        return getCurrentlyPlayingTrackResponseType.parseAsync(response);
+        return this.#get('/me/player/currently-playing')
+            .then(SpotifyClient.#asJson(getCurrentlyPlayingTrackResponseType));
+    };
+
+    /**
+     * Add an item to the end of user's current playback queue.
+     * @param uri The uri of the item to add to the queue. Must be a track or an episode uri. example value `spotify:track:4iV5W9uYEdYUVa79Axb7Rh`
+     * @returns
+     * @note Learn more at https://developer.spotify.com/documentation/web-api/reference/#/operations/add-to-queue
+     */
+    addItemToPlaybackQueue = async (uri: string): Promise<void> => {
+        return this.#post('/me/player/queue', { uri }).then((r) => {
+            if (!r.ok) {
+                return Promise.reject();
+            }
+        });
     };
 }
