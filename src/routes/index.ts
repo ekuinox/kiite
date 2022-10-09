@@ -120,13 +120,21 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
         }
         return c.html(`
             <div>
-                <input placeholder="trackId" type="text" id="target-track-id">
+                <input placeholder="trackId or url" type="text" id="target-track-id">
                 <button id="submit">聴かせる</button>
+                <p id="result"></p>
                 <script>
                     const button = document.getElementById('submit');
                     button.addEventListener('click', () => {
-                        const trackId = document.getElementById('target-track-id').value;
-                        fetch('/api/users/${id}/queue?trackId=' + trackId, { method: 'POST' });
+                        let trackId = document.getElementById('target-track-id').value;
+                        if (trackId.startsWith('https')) {
+                            const url = new URL(trackId);
+                            const paths = url.pathname.split('/');
+                            trackId = paths[paths.length - 1];
+                        }
+                        fetch('/api/users/${id}/queue?trackId=' + trackId, { method: 'POST' }).then((r) => {
+                            document.getElementById('result').innerText = r.ok ? 'OK' : 'Err';
+                        });
                     });
                 </script>
                 <a href="/">back</a>
