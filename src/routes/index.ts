@@ -25,14 +25,12 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
                     <head>
                     </head>
                     <body>
-                        <p>hello <a href="/users/${id}">${id}</a></p>
-                        <p>Enabled: ${enabled}</p>
-                        <a href="/enable">enable</a>
-                        <a href="/disable">disable</a>
-                        <code>
-                        curl -X POST {hostname}/api/{username}/queue?trackId={trackId}
-                        </code>
-                        で聴かせられるはず
+                        <div>
+                            <p>hello <a href="/users/${id}">${id}</a></p>
+                            <p>Enabled: ${enabled}</p>
+                            <a href="/enable">enable</a>
+                            <a href="/disable">disable</a>
+                        </div>
                     </body>
                 </html>
             `);
@@ -121,8 +119,20 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
             `);
         }
         return c.html(`
-            <p>${id}には今聴かせられるみたい</p>
-            <a href="/">back</a>
+            <div>
+                <input placeholder="userId" type="text" id="target-user-id">
+                <input placeholder="trackId" type="text" id="target-track-id">
+                <button id="submit">聴かせる</button>
+                <script>
+                    const button = document.getElementById('submit');
+                    button.addEventListener('click', () => {
+                        const userId = document.getElementById('target-user-id').value;
+                        const trackId = document.getElementById('target-track-id').value;
+                        fetch('/api/users/${id}/queue?trackId=' + trackId, { method: 'POST' });
+                    });
+                </script>
+                <a href="/">back</a>
+            </div>
         `);
     });
 
