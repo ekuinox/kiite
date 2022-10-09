@@ -23,21 +23,24 @@ export interface Env {
     SPOTIFY_CLIENT_ID: string;
     SPOTIFY_CLIENT_SECRET: string;
     CALLBACK_URL: string;
+    KV: KVNamespace,
 }
 
+// https://developer.spotify.com/documentation/general/guides/authorization/scopes/
 const SPOTIFY_SCOPES = [
     'streaming',
     'user-read-email',
     'user-read-private',
     'playlist-modify-public',
-    'playlist-modify-private'
+    'playlist-modify-private',
+    'user-read-currently-playing',
 ];
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get('/', (c) => {
     return c.html(`
-        <a href='/login'>login</a>
+        <a href="/login">login</a>
     `);
 });
 
@@ -48,10 +51,11 @@ app.get('/login', async (c) => {
         SPOTIFY_SCOPES,
         { clientId, redirectUri }
     );
-    c.cookie('state', state);
+    c.cookie('state', state, { sameSite: 'Strict' });
 
     return c.redirect(authorizeUri);
 });
+
 app.get('/callback', async (c) => {
     const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret, CALLBACK_URL: callbackUrl } = c.env;
     const { state: cookieState } = c.req.cookie();
@@ -63,12 +67,28 @@ app.get('/callback', async (c) => {
 
     try {
         const client = await SpotifyClient.fromCode(code, { clientId, clientSecret, redirectUri: callbackUrl });
-        const profile = await client.getCurrentUsersProfile();
-        return c.text(`hello ${profile.displayName}`);
+        const { displayName, id } = await client.getCurrentUsersProfile();
+        await c.env.KV.put(`${id}/accessToken`, client.getAccessToken());
+        await c.env.KV.put(`${id}/refreshToken`, client.getRefreshToken());
+        return c.html(`hello ${displayName} id => <a href="/user/${id}">${id}</a>`);
     } catch (e: unknown) {
         console.error(e);
         return c.text('error');
     }
+});
+
+app.get('/user/:id', async (c) => {
+    const id = c.req.param('id');
+    const accessToken = await c.env.KV.get(`${id}/accessToken`);
+    const refreshToken = await c.env.KV.get(`${id}/refreshToken`);
+    if (accessToken == null || refreshToken == null) {
+        return c.text(`not found user id => ${id}`);
+    }
+
+    const client = new SpotifyClient(accessToken, refreshToken);
+    const { item: track } = await client.getCurrentlyPlayingTrack();
+    const { displayName } = await client.getCurrentUsersProfile();
+    return c.text(`${displayName} playing ${track.name} (id: ${track.id})`);
 });
 
 export default app;

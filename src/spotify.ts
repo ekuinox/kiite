@@ -11,10 +11,20 @@ const tokenResponseType = z.object({
 const getCurrentUsersProfileResponseType = z.object({
     country: z.string(),
     display_name: z.string(),
+    id: z.string(),
 }).transform(({ display_name, ...rest }) => ({
     displayName: display_name,
     ...rest,
 }));
+
+const trackType = z.object({
+    id: z.string(),
+    name: z.string(),
+})
+
+const getCurrentlyPlayingTrackResponseType = z.object({
+    item: trackType,
+});
 
 interface SpotifyOAuth2AppCredentials {
     clientId: string;
@@ -29,6 +39,10 @@ export class SpotifyClient {
         this.#accessToken = accessToken;
         this.#refreshToken = refreshToken;
     }
+
+    getAccessToken = (): string => this.#accessToken;
+
+    getRefreshToken = (): string => this.#refreshToken;
 
     static generateAuthorizeUris = (
         scopes: ReadonlyArray<string>,
@@ -79,14 +93,19 @@ export class SpotifyClient {
         for (const [key, value] of Object.entries(params)) {
             query.set(key, value);
         }
-        return fetch(`https://api.spotify.com/v1/${path}?${query.toString()}`, {
+        return fetch(`https://api.spotify.com/v1${path}?${query.toString()}`, {
             headers: this.#headers(),
             method: 'GET',
         }).then((r) => r.json());
     };
 
     getCurrentUsersProfile = async (): Promise<z.infer<typeof getCurrentUsersProfileResponseType>> => {
-        const response = await this.#get('me');
+        const response = await this.#get('/me');
         return getCurrentUsersProfileResponseType.parseAsync(response);
+    };
+
+    getCurrentlyPlayingTrack = async (): Promise<z.infer<typeof getCurrentlyPlayingTrackResponseType>> => {
+        const response = await this.#get('/me/player/currently-playing');
+        return getCurrentlyPlayingTrackResponseType.parseAsync(response);
     };
 }

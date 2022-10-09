@@ -1,6 +1,13 @@
 name = "kiite"
 main = "src/index.ts"
 compatibility_date = "2022-10-08"
+kv_namespaces = [
+    { binding = "KV", id = "4719aa651857442b92ecefe38d2fd4e5", preview_id = "58f0271a9fb04fefa0d1cc9cd60dad20" }
+]
+
 
 [env.dev]
 name = "kiite-dev"
+kv_namespaces = [
+    { binding = "KV", id = "4719aa651857442b92ecefe38d2fd4e5", preview_id = "58f0271a9fb04fefa0d1cc9cd60dad20" }
+]
