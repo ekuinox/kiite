@@ -8,6 +8,12 @@ const tokenResponseType = z.object({
     refreshToken: refresh_token,
 }));
 
+const refreshTokenResponseType = z.object({
+    access_token: z.string(),
+}).transform(({ access_token }) => ({
+    accessToken: access_token,
+}));
+
 const getCurrentUsersProfileResponseType = z.object({
     country: z.string(),
     display_name: z.string(),
@@ -85,6 +91,28 @@ export class SpotifyClient {
         return new SpotifyClient(accessToken, refreshToken);
     };
 
+    static #asJson = <T extends z.ZodTypeAny>(typeObject: T) => async (r: Response): Promise<z.infer<T>> => {
+        const response = await r.json();
+        return typeObject.parseAsync(response);
+    };
+
+    static fromRefreshToken = async (
+        refreshToken: string,
+        { clientId, clientSecret, redirectUri }: SpotifyOAuth2AppCredentials
+    ): Promise<SpotifyClient> => {
+        const params = new URLSearchParams();
+        params.append('grant_type', 'refresh_token');
+        params.append('refresh_token', refreshToken);
+        const { accessToken } = await fetch(`https://accounts.spotify.com/api/token?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+            },
+        }).then(SpotifyClient.#asJson(refreshTokenResponseType));
+        return new SpotifyClient(accessToken, refreshToken);
+    };
+
     #headers = (): { Authorization: string } => ({
         'Authorization': `Bearer ${this.#accessToken}`,
     });
@@ -98,11 +126,6 @@ export class SpotifyClient {
             headers: this.#headers(),
             method,
         });
-    };
-
-    static #asJson = <T extends z.ZodTypeAny>(typeObject: T) => async (r: Response) => {
-        const response = await r.json();
-        return typeObject.parseAsync(response);
     };
 
     #get = async (path: string, params: Record<string, string> = {}) => {
