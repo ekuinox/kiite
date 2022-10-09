@@ -1,0 +1,6 @@
+name = "kiite"
+main = "src/index.ts"
+compatibility_date = "2022-10-08"
+
+[env.dev]
+name = "kiite-dev"
