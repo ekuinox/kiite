@@ -28,7 +28,6 @@ api.post('/users/:id/queue', async (c) => {
     const id = c.req.param('id');
 
     const enabledText = await c.env.KV.get(`${id}/enable`);
-    console.log({ enabledText });
 
     const enabled = enabledText === '1';
     if (!enabled) {
