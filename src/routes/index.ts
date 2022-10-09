@@ -120,13 +120,11 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
         }
         return c.html(`
             <div>
-                <input placeholder="userId" type="text" id="target-user-id">
                 <input placeholder="trackId" type="text" id="target-track-id">
                 <button id="submit">聴かせる</button>
                 <script>
                     const button = document.getElementById('submit');
                     button.addEventListener('click', () => {
-                        const userId = document.getElementById('target-user-id').value;
                         const trackId = document.getElementById('target-track-id').value;
                         fetch('/api/users/${id}/queue?trackId=' + trackId, { method: 'POST' });
                     });
