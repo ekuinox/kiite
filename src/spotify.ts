@@ -20,11 +20,15 @@ const getCurrentUsersProfileResponseType = z.object({
 const trackType = z.object({
     id: z.string(),
     name: z.string(),
-})
+});
 
 const getCurrentlyPlayingTrackResponseType = z.object({
     item: trackType,
-});
+    is_playing: z.boolean(),
+}).transform(({ is_playing, ...rest }) => ({
+    isPlaying: is_playing,
+    ...rest,
+}));
 
 interface SpotifyOAuth2AppCredentials {
     clientId: string;

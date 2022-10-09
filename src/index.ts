@@ -86,9 +86,9 @@ app.get('/user/:id', async (c) => {
     }
 
     const client = new SpotifyClient(accessToken, refreshToken);
-    const { item: track } = await client.getCurrentlyPlayingTrack();
+    const { item: track, isPlaying } = await client.getCurrentlyPlayingTrack();
     const { displayName } = await client.getCurrentUsersProfile();
-    return c.text(`${displayName} playing ${track.name} (id: ${track.id})`);
+    return c.text(`${displayName} playing ${track.name} (id: ${track.id}) (playing: ${isPlaying})`);
 });
 
 export default app;
