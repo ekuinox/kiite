@@ -13,7 +13,7 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
         const { session } = c.req.cookie();
         if (session == null) {
             const token = createToken();
-            c.cookie('session', token, { sameSite: 'Strict' });
+            c.cookie('session', token);
         }
 
         const id = await c.env.KV.get(`${session}/id`);
