@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "deploy": "npm run build -w page && npm run deploy -w worker",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
