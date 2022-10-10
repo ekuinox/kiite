@@ -7,36 +7,44 @@
 
   const putItem = async () => {
     let trackId = targetTrackId;
-    if (trackId.startsWith('https')) {
-        const url = new URL(trackId);
-        const paths = url.pathname.split('/');
-        trackId = paths[paths.length - 1];
+    if (trackId.startsWith("https")) {
+      const url = new URL(trackId);
+      const paths = url.pathname.split("/");
+      trackId = paths[paths.length - 1];
     }
 
-    const res = await fetch(`/api/users/${targetUserId}/queue?trackId=${trackId}`, { method: 'POST' });
+    const res = await fetch(
+      `/api/users/${targetUserId}/queue?trackId=${trackId}`,
+      { method: "POST" }
+    );
     ok = res.ok;
   };
 
   const enable = async () => {
-    const res = await fetch('/enable', { method: 'POST' });
+    const res = await fetch("/enable", { method: "POST" });
     if (res.ok) {
       enabled = true;
     }
   };
 
   const disable = async () => {
-    const res = await fetch('/disable', { method: 'POST' });
+    const res = await fetch("/disable", { method: "POST" });
     if (res.ok) {
       enabled = false;
     }
   };
-  
+
   const getId = async () => {
     const res = await fetch("/id");
     const json = await res.json();
     id = json.id;
     enabled = json.enabled;
   };
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('target')) {
+    targetUserId = urlParams.get('target');
+  }
 
   getId();
 </script>
@@ -55,8 +63,12 @@
   {/if}
   <div>
     <input placeholder="username" type="text" bind:value={targetUserId} />
-    <input placeholder="trackId or url" type="text" bind:value={targetTrackId} />
+    <input
+      placeholder="trackId or url"
+      type="text"
+      bind:value={targetTrackId}
+    />
     <button on:click={putItem}>聴かせる</button>
-    <p>result: {ok ? 'OK' : 'Err'}</p>
+    <p>result: {ok ? "OK" : "Err"}</p>
   </div>
 </main>
