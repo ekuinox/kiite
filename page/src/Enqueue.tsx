@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { Grid, Button, TextInput, Tooltip } from '@mantine/core';
 import { useEffect } from "react";
-import { useTimeout } from "@mantine/hooks";
 
 export const Enqueue = ({ targetId: initTargetId }: { targetId: string | null }) => {
     const [userId, setUserId] = useState<string>(initTargetId ?? '');
@@ -34,13 +33,13 @@ export const Enqueue = ({ targetId: initTargetId }: { targetId: string | null })
             );
             setOk(res.ok);
             setTooltipVisible(true);
-            useTimeout(() => {
+            setTimeout(() => {
                 setTooltipVisible(false);
             }, 3000);
         } catch (e: unknown) {
             setOk(false);
             setTooltipVisible(true);
-            useTimeout(() => {
+            setTimeout(() => {
                 setTooltipVisible(false);
             }, 3000);
         }
