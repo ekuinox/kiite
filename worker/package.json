@@ -12,6 +12,7 @@
   "private": true,
   "scripts": {
     "start": "wrangler dev -e dev",
+    "tail": "wrangler tail",
     "deploy": "wrangler publish"
   },
   "dependencies": {
