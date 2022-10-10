@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/serve-static.module';
 import { Env } from '../env';
-import { createToken } from '../lib';
+import { createToken, KV } from '../lib';
 import { SpotifyClient } from '../spotify';
-import { api } from './api';
+import { createApi } from './api';
 
 export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
     const routes = new Hono<{ Bindings: Env }>();
@@ -18,7 +18,7 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
         await next();
     });
 
-    routes.route('/api', api);
+    routes.route('/api', createApi());
 
     routes.get('/login', async (c) => {
         const { SPOTIFY_CLIENT_ID: clientId, CALLBACK_URL: redirectUri } = c.env;
@@ -39,17 +39,22 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
 
     routes.get('/logout', async (c) => {
         const { session } = c.req.cookie();
-        await c.env.KV.delete(`${session}/id`);
+        const kv = new KV(c.env.KV);
+        await kv.deleteIdBySession(session);
         return c.redirect('/');
     });
 
     routes.get('/id', async (c) => {
         const { session } = c.req.cookie();
-        const id = await c.env.KV.get(`${session}/id`);
-        const enabled = (await c.env.KV.get(`${id}/enable`)) === '1';
+        const kv = new KV(c.env.KV);
+        const id = await kv.getIdBySession(session);
+        if (id == null) {
+            c.status(403);
+            return c.text('Err');
+        }
+        const enabled = await kv.getEnabled(id);
         return c.json({ id, enabled });
     });
-
 
     routes.get('/callback', async (c) => {
         const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret, CALLBACK_URL: callbackUrl } = c.env;
@@ -66,17 +71,14 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
             return c.text('invalid session');
         }
 
+        const kv = new KV(c.env.KV);
+
         try {
             const client = await SpotifyClient.fromCode(code, { clientId, clientSecret, redirectUri: callbackUrl });
             const { id } = await client.getCurrentUsersProfile();
-            await c.env.KV.put(`${id}/accessToken`, client.getAccessToken());
-            await c.env.KV.put(`${id}/refreshToken`, client.getRefreshToken());
-            // セッションに対するIDを保持したいけど、2時間で途切れるようにのつもり
-            // https://developers.cloudflare.com/workers/runtime-apis/kv#expiring-keys
-            await c.env.KV.put(`${session}/id`, id, { expirationTtl: Math.round(Date.now() / 1000) + 60 * 60 * 2 });
-            console.log('login ok');
-            console.log({ session });
-            c.cookie('session', session);
+            kv.putAccessToken(id, client.getAccessToken());
+            kv.putRefreshToken(id, client.getRefreshToken());
+            kv.putIdBySession(session, id);
             return c.redirect('/');
         } catch (e: unknown) {
             console.error(e);
@@ -86,16 +88,26 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
 
     routes.post('/enable', async (c) => {
         const { session } = c.req.cookie();
-        const id = await c.env.KV.get(`${session}/id`);
-        await c.env.KV.put(`${id}/enable`, '1');
+        const kv = new KV(c.env.KV);
+        const id = await kv.getIdBySession(session);
+        if (id == null) {
+            c.status(403);
+            return c.text('Err');
+        }
+        await kv.putEnabled(id);
         c.status(200);
         return c.text('OK');
     });
 
     routes.post('/disable', async (c) => {
         const { session } = c.req.cookie();
-        const id = await c.env.KV.get(`${session}/id`);
-        await c.env.KV.delete(`${id}/enable`);
+        const kv = new KV(c.env.KV);
+        const id = await kv.getIdBySession(session);
+        if (id == null) {
+            c.status(403);
+            return c.text('Err');
+        }
+        await kv.putDisabled(id);
         c.status(200);
         return c.text('OK');
     });
