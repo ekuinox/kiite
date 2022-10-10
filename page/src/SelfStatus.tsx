@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Grid, SegmentedControl, Text } from '@mantine/core';
+import { IconBrandTwitter } from '@tabler/icons';
 import { Logout } from "./Logout";
 
 export const SelfStatus = ({ userId, enabled: initEnabled }: { userId: string; enabled: boolean }) => {
@@ -19,10 +20,19 @@ export const SelfStatus = ({ userId, enabled: initEnabled }: { userId: string; e
         }
     }, []);
 
+    const shareTweetText = useMemo(() => {
+        const userUrl = `${window.location.origin}/?target=${userId}`;
+        const text = encodeURIComponent(`何か聴かせてください ${userUrl}`);
+        return `https://twitter.com/intent/tweet?text=${text}`;
+    }, [userId]);
+
     return (
         <Grid>
             <Grid.Col>
-                <Text>ログイン中のアカウント <a href={`/?target=${userId}`}>{userId}</a></Text>
+                <Text>
+                    ログイン中のアカウント <a href={`/?target=${userId}`}>{userId}</a>
+                    <a href={shareTweetText} target='_blank'><IconBrandTwitter /></a>
+                </Text>
             </Grid.Col>
             <Grid.Col>
                 <Text>次に再生に突っ込まれても良いかどうか切り替えます</Text>
