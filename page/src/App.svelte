@@ -54,7 +54,7 @@
     <a href="/login">login</a>
   {:else}
     <div>
-      <p>hello <a href="/users/${id}">{id}</a></p>
+      <p>hello <a href="/?target={id}">{id}</a></p>
       <p>Enabled: {enabled}</p>
       <button on:click={enable}>enable</button>
       <button on:click={disable}>disable</button>
