@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Container } from '@mantine/core';
+import { Container, Text } from '@mantine/core';
+import { IconBrandGithub } from '@tabler/icons';
+import { Login } from './Login';
 import { Enqueue } from './Enqueue';
 import { SelfStatus } from './SelfStatus';
-import { Login } from './Login';
 
 export const App = () => {
   const [id, setId] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export const App = () => {
       <Enqueue targetId={targetUserId} />
       {id != null && enabled != null && <SelfStatus userId={id} enabled={enabled} />}
       {id == null && <Login />}
+      <Text> <a href='https://github.com/ekuinox/kiite'>code <IconBrandGithub/></a></Text>
     </Container>
   );
 };
