@@ -1,20 +1,8 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { Env } from '../env';
 import { SpotifyClient } from '../spotify';
 
 export const api = new Hono<{ Bindings: Env }>();
-
-api.use('/*',cors({
-    origin: (origin) => {
-        return 'http://127.0.0.1:8788'
-    },
-    allowHeaders: ['X-Custom-Header', 'Upgrade-Insecure-Requests'],
-    allowMethods: ['POST', 'GET', 'OPTIONS'],
-    exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
-    maxAge: 10,
-    credentials: true,
-}));
 
 api.get('/users/:id/playing', async (c) => {
     const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret, CALLBACK_URL: callbackUrl } = c.env;

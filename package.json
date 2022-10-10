@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/ekuinox/kiite#readme",
   "workspaces": [
-    "worker"
+    "worker",
+    "page"
   ]
 }
