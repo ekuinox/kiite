@@ -76,9 +76,9 @@ export const createRoutes = (spotifyScopes: ReadonlyArray<string>) => {
         try {
             const client = await SpotifyClient.fromCode(code, { clientId, clientSecret, redirectUri: callbackUrl });
             const { id } = await client.getCurrentUsersProfile();
-            kv.putAccessToken(id, client.getAccessToken());
-            kv.putRefreshToken(id, client.getRefreshToken());
-            kv.putIdBySession(session, id);
+            await kv.putAccessToken(id, client.getAccessToken());
+            await kv.putRefreshToken(id, client.getRefreshToken());
+            await kv.putIdBySession(session, id);
             return c.redirect('/');
         } catch (e: unknown) {
             console.error(e);
